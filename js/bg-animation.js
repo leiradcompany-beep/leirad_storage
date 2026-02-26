@@ -20,12 +20,62 @@ const state = {
     scrollInertia: 0.08
 };
 
-// Preload images
-for (let i = 1; i <= frameCount; i++) {
-    const img = new Image();
-    img.src = currentFrame(i);
-    images.push(img);
+// Preload images using Cache API for browser-level local storage caching
+for (let i = 0; i < frameCount; i++) {
+    images.push(new Image());
 }
+
+async function preloadImagesWithCache() {
+    const cacheName = 'bg-frames-cache-v1';
+    let cache = null;
+
+    // Check if Cache API is supported (requires HTTPS or localhost)
+    if ('caches' in window) {
+        try { cache = await caches.open(cacheName); } catch (e) { console.warn('Cache API not available'); }
+    }
+
+    const loadPromises = [];
+
+    for (let i = 1; i <= frameCount; i++) {
+        const url = currentFrame(i);
+        const img = images[i - 1];
+
+        const loadPromise = new Promise((resolve) => {
+            img.onload = img.onerror = resolve;
+        });
+        loadPromises.push(loadPromise);
+
+        (async () => {
+            try {
+                if (cache) {
+                    const cachedResponse = await cache.match(url);
+                    if (cachedResponse) {
+                        const blob = await cachedResponse.blob();
+                        img.src = URL.createObjectURL(blob);
+                        return;
+                    }
+
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        cache.put(url, response.clone());
+                        const blob = await response.blob();
+                        img.src = URL.createObjectURL(blob);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('Cache failed for ' + url + ', falling back to standard loading', err);
+            }
+            // Fallback
+            img.src = url;
+        })();
+    }
+
+    Promise.all(loadPromises).then(() => {
+        render();
+    });
+}
+preloadImagesWithCache();
 
 function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
@@ -128,7 +178,4 @@ state.currentScroll = state.targetScroll;
 resizeCanvas();
 requestAnimationFrame(update);
 
-Promise.all(images.map(img => {
-    if (img.complete) return Promise.resolve();
-    return new Promise(resolve => { img.onload = img.onerror = resolve; });
-})).then(render);
+
