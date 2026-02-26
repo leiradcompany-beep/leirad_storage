@@ -608,11 +608,7 @@ async function generateShareLink() {
         const currentPath = window.location.pathname;
         const baseIdx = currentPath.indexOf('/frontend/html/');
         const basePath = baseIdx !== -1 ? currentPath.substring(0, baseIdx) : '';
-        const pageName = currentShareItem.type === 'folder'
-            ? 'view_shared_folder.html'
-            : 'view_share.html';
-        const shareUrl = `${window.location.origin}${basePath}/frontend/html/${pageName}?token=${response.share_token}`;
-
+        const shareUrl = `${window.location.origin}${basePath}/s/${response.share_token}`;
         document.getElementById('shareLinkInput').value = shareUrl;
         document.getElementById('shareLinkContainer').style.display = 'block';
 
