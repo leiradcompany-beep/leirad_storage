@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DropShare</title>
+    <script src="../js/security-deterrents.js"></script>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Specific Dashboard Tweaks */
+        .sidebar {
+            position: sticky;
+            top: 2rem;
+            height: calc(100vh - 4rem);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .main-card {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 32px;
+            overflow: hidden;
+        }
+
+        .action-bar {
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .file-browser {
+            flex: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+        }
+
+        .storage-card {
+            padding: 1.5rem;
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-card {
+            padding: 0.75rem;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-btn {
+            width: 100%;
+            justify-content: flex-start;
+            border: none;
+            padding: 0.85rem 1.25rem;
+            border-radius: 14px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .nav-btn.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .nav-btn i {
+            width: 24px;
+            font-size: 1.1rem;
+        }
+
+        .breadcrumb-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--primary-light);
+        }
+
+        .breadcrumb-current {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 5rem 0;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.2;
+        }
+
+        /* ── Custom Icon Dropdown ────────────────────── */
+        .icon-dropdown {
+            position: relative;
+            user-select: none;
+        }
+
+        .icon-dropdown-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 52px;
+        }
+
+        .icon-dropdown-trigger:hover,
+        .icon-dropdown-trigger:focus {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.06);
+            outline: none;
+        }
+
+        .icon-dropdown.open .icon-dropdown-trigger {
+            border-color: var(--primary);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            background: rgba(99, 102, 241, 0.07);
+        }
+
+        .idd-icon {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+            color: #10b981;
+            flex-shrink: 0;
+        }
+
+        .idd-label {
+            flex: 1;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .idd-chevron {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+        }
+
+        .icon-dropdown.open .idd-chevron {
+            transform: rotate(180deg);
+        }
+
+        .icon-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #111827;
+            border: 1px solid var(--primary);
+            border-top: none;
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
+            z-index: 500;
+            overflow: hidden;
+            animation: ddFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .icon-dropdown.open .icon-dropdown-menu {
+            display: block;
+        }
+
+        @keyframes ddFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .idd-option {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.7rem 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .idd-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .idd-option.active {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .idd-opt-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .idd-opt-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .idd-opt-label {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .idd-opt-sub {
+            font-size: 0.73rem;
+            color: var(--text-muted);
+        }
+
+        .idd-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0.25rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content-wrapper">
+        <nav>
+            <div class="logo">DropShare</div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div id="userInfo"
+                    style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 100px; border: 1px solid var(--glass-border); font-size: 0.85rem; font-weight: 500;">
+                </div>
+                <button onclick="logout()" class="btn btn-outline"
+                    style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">Sign Out</button>
+            </div>
+        </nav>
+
+        <div class="layout-grid" style="margin-top: 1rem;">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Storage component -->
+                <div class="glass storage-card">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;">
+                        <div
+                            style="background: linear-gradient(135deg, var(--primary), #818cf8); width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);">
+                            <i class="fas fa-cloud" style="color: white; font-size: 1.1rem;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="font-size: 0.9rem; font-weight: 700;">Storage</h3>
+                            <div id="storagePercentageBadge"
+                                style="font-size: 0.7rem; color: var(--primary-light); font-weight: 800;">0% USED</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background: rgba(255,255,255,0.03); height: 6px; border-radius: 10px; overflow: hidden; margin-bottom: 0.75rem; border: 1px solid var(--glass-border);">
+                        <div id="storageBar" class="shimmer-bg"
+                            style="background: var(--primary); height: 100%; width: 0%; transition: width 1s ease;">
+                        </div>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                        <span id="storageUsedText">0 B</span>
+                        <span>5.0 GB limit</span>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="glass nav-card">
+                    <button id="navAllFiles" onclick="navigateToRoot()" class="btn btn-outline nav-btn active">
+                        <i class="fa-solid fa-folder-tree"></i> Files
+                    </button>
+                    <button id="navTrash" onclick="showTrash()" class="btn btn-outline nav-btn"
+                        style="margin-top: 0.5rem;">
+                        <i class="fa-solid fa-trash-can"></i> Trash
+                    </button>
+                </div>
+
+                <div id="uploadStatus" style="font-size: 0.8rem;"></div>
+            </aside>
+
+            <!-- Main Explorer -->
+            <main>
+                <div class="glass main-card">
+                    <div class="action-bar">
+                        <div style="display: flex; align-items: center; gap: 1.5rem;">
+                            <label class="custom-checkbox">
+                                <input type="checkbox" id="selectAllItems" onchange="toggleSelectAll(this.checked)">
+                                <span class="checkmark"></span>
+                            </label>
+                            <div id="breadcrumbs"
+                                style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
+                                <!-- Breadcrumbs -->
+                            </div>
+                        </div>
+
+                        <div id="actionContainer" style="display: flex; gap: 0.75rem; align-items: center;">
+                            <div id="mainActions" style="display: flex; gap: 0.75rem;">
+                                <button onclick="openFolderModal()" class="btn btn-outline"
+                                    style="padding: 0.6rem 1.25rem; border-radius: 12px; font-size: 0.85rem;">
+                                    <i class="fas fa-folder-plus"></i> New Folder
+                                </button>
+                                <button onclick="document.getElementById('fileInput').click()" class="btn btn-primary"
+                                    style="padding: 0.6rem 1.5rem; border-radius: 12px; font-size: 0.85rem;">
+                                    <i class="fas fa-cloud-arrow-up"></i> Upload Files
+                                </button>
+                                <input type="file" id="fileInput" multiple hidden>
+                            </div>
+
+                            <div id="bulkActions"
+                                style="display: none; align-items: center; gap: 1rem; background: rgba(244, 63, 94, 0.1); padding: 0.4rem 1rem; border-radius: 100px; border: 1px solid rgba(244, 63, 94, 0.2);">
+                                <span id="selectedCountText"
+                                    style="color: var(--error); font-weight: 700; font-size: 0.8rem;">0 ITEMS</span>
+                                <button onclick="bulkDelete()" class="btn btn-outline"
+                                    style="padding: 0.4rem; border: none; background: transparent; color: var(--error);">
+                                    <i class="fas fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dropZone" class="file-browser">
+                        <div id="fileList" class="item-grid">
+                            <!-- Loading State -->
+                            <div id="loadingWorkspace" class="empty-state">
+                                <i class="fas fa-circle-notch fa-spin"></i>
+                                <p>Syncing your workspace...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal-overlay">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-share-nodes"
+                        style="color: var(--primary); margin-right: 0.5rem; font-size: 1.2rem;"></i>Share Access</h2>
+                <button onclick="closeShareModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Expiry Section -->
+            <div class="form-group">
+                <label>Link Expiration</label>
+                <!-- Custom Icon Dropdown -->
+                <div class="icon-dropdown" id="expiryDropdown">
+                    <div class="icon-dropdown-trigger" id="expiryTrigger" tabindex="0">
+                        <span class="idd-icon"><i class="fas fa-infinity"></i></span>
+                        <span class="idd-label">Eternal Link — Never Expires</span>
+                        <i class="fas fa-chevron-down idd-chevron"></i>
+                    </div>
+                    <div class="icon-dropdown-menu" id="expiryMenu">
+                        <div class="idd-option" data-value="none">
+                            <span class="idd-opt-icon" style="color:#10b981;"><i class="fas fa-infinity"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">Eternal Link</span>
+                                <span class="idd-opt-sub">Never expires</span>
+                            </div>
+                        </div>
+                        <div class="idd-option" data-value="30minutes">
+                            <span class="idd-opt-icon" style="color:#f59e0b;"><i class="fas fa-clock"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">30 Minutes</span>
+                                <span class="idd-opt-sub">Short-lived, high-security</span>
+                            </div>
+                        </div>
+                        <div class="idd-option" data-value="1hours">
+                            <span class="idd-opt-icon" style="color:#f59e0b;"><i
+                                    class="fas fa-hourglass-half"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">1 Hour</span>
+                                <span class="idd-opt-sub">Expires in 60 minutes</span>
+                            </div>
+                        </div>
+                        <div class="idd-option" data-value="3days">
+                            <span class="idd-opt-icon" style="color:#6366f1;"><i class="fas fa-calendar-day"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">3 Days</span>
+                                <span class="idd-opt-sub">Expires in 72 hours</span>
+                            </div>
+                        </div>
+                        <div class="idd-option" data-value="7days">
+                            <span class="idd-opt-icon" style="color:#6366f1;"><i
+                                    class="fas fa-calendar-week"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">7 Days</span>
+                                <span class="idd-opt-sub">Expires in one week</span>
+                            </div>
+                        </div>
+                        <div class="idd-divider"></div>
+                        <div class="idd-option" data-value="custom">
+                            <span class="idd-opt-icon" style="color:#818cf8;"><i class="fas fa-sliders"></i></span>
+                            <div class="idd-opt-text">
+                                <span class="idd-opt-label">Custom Duration</span>
+                                <span class="idd-opt-sub">Set your own time limit</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden real input for JS reading -->
+                <input type="hidden" id="shareExpiry" value="none">
+            </div>
+
+            <!-- Custom Duration Input -->
+            <div id="customExpiryContainer" class="form-group" style="display: none;">
+                <label>Custom Duration</label>
+                <div style="display: flex; gap: 0.6rem;">
+                    <input type="number" id="customExpiryValue" class="form-control" min="1" max="9999" value="7"
+                        style="flex: 1;">
+                    <select id="customExpiryUnit" class="form-control" style="width: 130px; flex-shrink: 0;">
+                        <option value="minutes">Minutes</option>
+                        <option value="hours">Hours</option>
+                        <option value="days" selected>Days</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Note Section -->
+            <div class="form-group">
+                <label>Note for Recipients <span style="font-weight:400;opacity:0.55;">(optional)</span></label>
+                <textarea id="shareNote" class="form-control" rows="3"
+                    placeholder="Add a message for anyone opening this link…"
+                    style="resize: vertical; min-height: 80px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                <div style="text-align: right; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem;">
+                    <span id="noteCharCount">0</span>/500
+                </div>
+            </div>
+
+            <button onclick="generateShareLink()" class="btn btn-primary"
+                style="width: 100%; margin-top: 0.5rem; border-radius: 14px; padding: 0.9rem;">
+                <i class="fa-solid fa-link"></i> Generate Secure Link
+            </button>
+
+            <!-- Generated Link Container -->
+            <div id="shareLinkContainer" style="display: none; margin-top: 1.75rem;">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <input type="text" id="shareLinkInput" class="form-control" readonly style="font-size: 0.82rem;">
+                    <button onclick="copyShareLink()" class="btn btn-primary"
+                        style="padding: 0.5rem 1.25rem; flex-shrink: 0;" title="Copy link">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <div id="qrcode"
+                    style="display: flex; justify-content: center; background: white; padding: 1.5rem; border-radius: 20px; margin: 0 auto; width: fit-content; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="renameModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Rename Item</h2>
+                <button onclick="closeRenameModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="form-group">
+                <label>New Designation</label>
+                <input type="text" id="renameInput" class="form-control" placeholder="Enter name...">
+            </div>
+            <button id="renameSubmitBtn" onclick="submitRename()" class="btn btn-primary"
+                style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-check"></i> Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div id="folderModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>New Collection</h2>
+                <button onclick="closeFolderModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="form-group">
+                <label>Collection Name</label>
+                <input type="text" id="folderNameInput" class="form-control" placeholder="e.g. Project Assets">
+            </div>
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea id="folderDescriptionInput" class="form-control" rows="3" placeholder="Reference notes..."
+                    style="resize: none;"></textarea>
+            </div>
+            <button onclick="createNewFolder()" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-plus"></i> Create Collection
+            </button>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="deleteTitle" style="color: var(--error);">Security Warning</h2>
+                <button onclick="closeDeleteModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <p id="deleteMessage" style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.6;"></p>
+
+            <div class="form-group">
+                <label class="custom-checkbox">
+                    <input type="checkbox" id="permanentDeleteCheck">
+                    <span class="checkmark"></span>
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Eliminate Permanently
+                        (Skip Trash)</span>
+                </label>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+                <button onclick="closeDeleteModal()" class="btn btn-outline" style="border-radius: 12px;">Back</button>
+                <button id="deleteConfirmBtn" class="btn btn-primary"
+                    style="background: var(--error); border-radius: 12px;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Modal -->
+    <div id="conflictModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 style="color: var(--accent);"><i class="fas fa-shield-halved"></i> Merge Conflict</h2>
+                <button onclick="closeConflictModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <p id="conflictMessage" style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.6;"></p>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button id="replaceBtn" class="btn btn-primary" style="background: var(--error);">Overwrite
+                    Existing</button>
+                <button id="duplicateBtn" class="btn btn-outline">Keep Both (Suffix Version)</button>
+                <button id="cancelBtn" class="btn btn-outline">Abort Operation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Progress Modal -->
+    <div id="uploadSelectionModal" class="modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Upload Queue</h2>
+                <button onclick="closeUploadSelectionModal()" class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="selectedFilesList"
+                style="max-height: 250px; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 2rem;"></div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+                <button onclick="closeUploadSelectionModal()" class="btn btn-outline">Cancel</button>
+                <button id="startUploadBtn" class="btn btn-primary">Start Transfer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/ui.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+
+</html>

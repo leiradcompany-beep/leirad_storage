@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DropShare | Secure File Sharing Redefined</title>
+    <!-- Premium Fonts: Outfit and Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <script src="../js/security-deterrents.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Modern Apple-like Landing Styles */
+        body.has-bg-animation {
+            font-family: 'Outfit', sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            object-fit: cover;
+            /* Subtly dim center to pop text, while keeping edges visible */
+            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0.8) 100%);
+            -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0.8) 100%);
+            filter: brightness(0.6) contrast(1.2);
+            transition: filter 0.5s ease;
+        }
+
+        /* Frosted Glass Navigation */
+        .apple-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4rem;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .apple-nav .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .apple-nav .logo i {
+            color: #818cf8;
+            font-size: 1.25rem;
+        }
+
+        .apple-nav-links {
+            display: flex;
+            gap: 2.5rem;
+            align-items: center;
+        }
+
+        .apple-nav-link {
+            color: #a1a1a6;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: color 0.3s ease;
+        }
+
+        .apple-nav-link:hover {
+            color: #fff;
+        }
+
+        .apple-btn {
+            background: #fff;
+            color: #111;
+            padding: 0.6rem 1.4rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .apple-btn.btn-primary-gradient {
+            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .apple-btn:hover {
+            transform: scale(1.02) translateY(-2px);
+            background: #fff;
+            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.15);
+        }
+
+        /* Scroll Sections Setup */
+        .scroll-section {
+            height: 150vh;
+            /* gives room for scrolling through the sections */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 2rem;
+            pointer-events: none;
+            /* Let clicks pass initially */
+        }
+
+        .scroll-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), filter 1.2s ease;
+            will-change: opacity, transform, filter;
+            filter: blur(20px);
+        }
+
+        .scroll-section.active .scroll-content {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+            /* Enable clicks */
+            filter: blur(0px);
+        }
+
+        .scroll-section.past .scroll-content {
+            opacity: 0;
+            transform: translate(-50%, -80%) scale(0.95);
+            filter: blur(10px);
+        }
+
+        .scroll-section.future .scroll-content {
+            opacity: 0;
+            transform: translate(-50%, -20%) scale(1.05);
+            filter: blur(10px);
+        }
+
+        /* Typography */
+        .hero-title {
+            font-size: clamp(3.5rem, 8vw, 7.5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #34d399, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.5rem);
+            font-weight: 400;
+            color: #a1a1a6;
+            font-family: 'Inter', sans-serif;
+            max-width: 650px;
+            margin: 0 auto 3.5rem;
+            line-height: 1.6;
+            letter-spacing: 0;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 1.25rem;
+            justify-content: center;
+        }
+
+        .btn-large {
+            padding: 1.1rem 2.5rem;
+            border-radius: 40px;
+            font-size: 1.1rem;
+        }
+
+        .btn-outline-apple {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline-apple:hover {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: none;
+        }
+
+        /* Statement Text */
+        .statement-text {
+            font-size: clamp(2.5rem, 6vw, 5.5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: #fff;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .statement-text .highlight {
+            color: #818cf8;
+            background: linear-gradient(120deg, #fff, #a1a1a6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .statement-text .gradient-word {
+            background: linear-gradient(120deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Feature Grid */
+        .feature-grid-apple {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            width: 100%;
+            padding: 0 1rem;
+        }
+
+        .feature-card-apple {
+            background: rgba(20, 20, 25, 0.45);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 3.5rem 2.5rem;
+            text-align: left;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card-apple:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(30, 30, 40, 0.55);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(129, 140, 248, 0.1);
+        }
+
+        .feature-icon-apple {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        .feature-card-apple h3 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        .feature-card-apple p {
+            color: #a1a1a6;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+        }
+
+        /* Tech Showcase */
+        .tech-showcase {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5rem;
+            text-align: left;
+            padding: 4rem;
+            background: rgba(10, 10, 15, 0.5);
+            border-radius: 48px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(40px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .tech-showcase-text {
+            flex: 1.2;
+        }
+
+        .tech-showcase-text h2 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .tech-showcase-text p {
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            line-height: 1.7;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tech-stats {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 2.5rem 1.5rem;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #34d399, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #a1a1a6;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 1rem;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            height: 120vh;
+            /* slightly shorter */
+        }
+
+        .final-cta-content h2 {
+            font-size: clamp(3rem, 7vw, 5rem);
+            font-weight: 800;
+            margin-bottom: 3rem;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        /* Mouse Scroll Indicator */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+            opacity: 0.7;
+            animation: bounce 2s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 1001;
+            transition: opacity 0.5s ease;
+        }
+
+        .scroll-mouse {
+            width: 30px;
+            height: 48px;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .scroll-wheel {
+            width: 4px;
+            height: 8px;
+            background: #fff;
+            border-radius: 2px;
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: wheel 1.5s infinite ease-in-out;
+        }
+
+        .scroll-indicator span {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #a1a1a6;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes wheel {
+            0% {
+                top: 8px;
+                opacity: 1;
+                height: 8px;
+            }
+
+            50% {
+                top: 18px;
+                opacity: 0;
+                height: 12px;
+            }
+
+            100% {
+                top: 8px;
+                opacity: 0;
+                height: 8px;
+            }
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translate(-50%, 0);
+            }
+
+            50% {
+                transform: translate(-50%, 15px);
+            }
+        }
+
+        /* Modern Footer */
+        .apple-footer {
+            position: relative;
+            background: rgba(5, 5, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 5rem 4rem 3rem;
+            z-index: 10;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .footer-brand .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand .logo i {
+            color: #818cf8;
+        }
+
+        .footer-brand p {
+            color: #a1a1a6;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        .footer-links-grid {
+            display: flex;
+            gap: 6rem;
+        }
+
+        .footer-col h4 {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-col a {
+            display: block;
+            color: #a1a1a6;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1rem;
+            transition: color 0.3s;
+        }
+
+        .footer-col a:hover {
+            color: #fff;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 4rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1024px) {
+            .feature-grid-apple {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tech-showcase {
+                flex-direction: column;
+                text-align: center;
+                gap: 3rem;
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                gap: 4rem;
+            }
+
+            .footer-links-grid {
+                gap: 4rem;
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .feature-grid-apple,
+            .tech-stats {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+            }
+
+            .apple-nav {
+                padding: 0 1.5rem;
+                height: 65px;
+            }
+
+            .hero-title {
+                font-size: 2.8rem;
+                margin-bottom: 1.5rem;
+                letter-spacing: -0.05em;
+                line-height: 1.05;
+            }
+
+            .hero-subtitle {
+                font-size: 1.05rem;
+                margin-bottom: 3rem;
+                max-width: 85%;
+                line-height: 1.5;
+            }
+
+            .scroll-indicator {
+                bottom: 1.5rem;
+                transform: translateX(-50%) scale(0.8);
+                opacity: 0.5;
+            }
+
+            .scroll-mouse {
+                width: 24px;
+                height: 40px;
+            }
+
+            .feature-card-apple {
+                padding: 1.75rem 1.5rem;
+                border-radius: 24px;
+            }
+
+            .feature-icon-apple {
+                font-size: 2rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .feature-card-apple h3 {
+                font-size: 1.35rem;
+            }
+
+            .feature-card-apple p {
+                font-size: 0.95rem;
+            }
+
+            .tech-showcase {
+                padding: 2rem 1.5rem;
+                border-radius: 28px;
+            }
+
+            .tech-showcase-text h2 {
+                font-size: 2.5rem;
+            }
+
+            .tech-showcase-text p {
+                font-size: 1rem;
+            }
+
+            .stat-box {
+                padding: 1.5rem 1rem;
+            }
+
+            .stat-value {
+                font-size: 2.5rem;
+            }
+
+            .cta-group {
+                flex-direction: column;
+                gap: 0.85rem;
+                width: 100%;
+                max-width: 280px;
+                margin: 0 auto;
+            }
+
+            .btn-large {
+                padding: 1rem 2rem;
+                font-size: 1.05rem;
+                width: 100%;
+                text-align: center;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .scroll-section {
+                padding: 0 1.25rem;
+                height: 130vh;
+                /* Tighter scroll distance for mobile */
+            }
+
+            .final-cta {
+                height: 100vh;
+            }
+
+            .final-cta-content h2 {
+                font-size: 2.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .footer-links-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2.5rem 1rem;
+            }
+
+            .apple-nav-link {
+                display: none;
+            }
+
+            .apple-footer {
+                padding: 4rem 1.5rem 2rem;
+            }
+
+            .footer-inner {
+                gap: 3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2.4rem;
+                letter-spacing: -0.06em;
+            }
+
+            .statement-text {
+                font-size: 2rem;
+            }
+
+            .scroll-section {
+                height: 115vh;
+                /* Very tight scroll for small phones */
+            }
+
+            .final-cta {
+                height: 90vh;
+            }
+
+            .tech-showcase-text h2 {
+                font-size: 2.1rem;
+            }
+
+            .final-cta-content h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Background Canvas -> Handled by bg-animation.js -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="landing-page">
+        <!-- Navigation -->
+        <nav class="apple-nav">
+            <a href="#" class="logo"><i class="fa-solid fa-cloud"></i> DropShare</a>
+            <div class="apple-nav-links">
+                <a href="login.html" class="apple-nav-link">Log In</a>
+                <a href="register.html" class="apple-btn">Get Started</a>
+            </div>
+        </nav>
+
+        <!-- Main Scroll Track -->
+        <main id="scroll-track">
+
+            <!-- Section 1: Hero -->
+            <section class="scroll-section" id="sec-1">
+                <div class="scroll-content">
+                    <h1 class="hero-title">File sharing, <br><span>reimagined.</span></h1>
+                    <p class="hero-subtitle">The most advanced platform for professionals. Upload up to 5GB in seconds
+                        with our globally distributed network.</p>
+                    <div class="cta-group">
+                        <a href="register.html" class="apple-btn btn-large btn-primary-gradient"><i
+                                class="fa-solid fa-rocket" style="margin-right:10px;"></i> Start Sharing Free</a>
+                        <a href="#sec-2" class="apple-btn btn-outline-apple btn-large">Learn More</a>
+                    </div>
+
+            </section>
+
+            <!-- Global Scroll Indicator -->
+            <div class="scroll-indicator" id="global-scroll-indicator">
+                <div class="scroll-mouse">
+                    <div class="scroll-wheel"></div>
+                </div>
+                <span>Scroll</span>
+            </div>
+
+            <!-- Section 2: Statement -->
+            <section class="scroll-section" id="sec-2">
+                <div class="scroll-content">
+                    <p class="statement-text">Built for <span class="highlight">speed</span>.<br>Designed for <span
+                            class="highlight">elegance</span>.<br>Engineered for <span
+                            class="gradient-word">privacy</span>.</p>
+                </div>
+            </section>
+
+            <!-- Section 3: Features -->
+            <section class="scroll-section" id="sec-3">
+                <div class="scroll-content">
+                    <div class="feature-grid-apple">
+                        <div class="feature-card-apple">
+                            <i class="fa-solid fa-shield-halved feature-icon-apple"></i>
+                            <h3>End-to-End Security</h3>
+                            <p>Your data is encrypted locally before upload. Zero knowledge architecture ensures only
+                                you and your recipients can access the files.</p>
+                        </div>
+                        <div class="feature-card-apple">
+                            <i class="fa-solid fa-bolt feature-icon-apple"></i>
+                            <h3>Ultra-Fast Transfers</h3>
+                            <p>Leveraging a global edge network, we route your files through the fastest possible
+                                pathways, avoiding congestion.</p>
+                        </div>
+                        <div class="feature-card-apple">
+                            <i class="fa-solid fa-hard-drive feature-icon-apple"></i>
+                            <h3>Massive Capacity</h3>
+                            <p>We believe in generosity. Enjoy up to 5GB of robust storage entirely free, instantly
+                                accessible from any device.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Performance Stats -->
+            <section class="scroll-section" id="sec-4">
+                <div class="scroll-content">
+                    <div class="tech-showcase">
+                        <div class="tech-showcase-text">
+                            <h2>Performance <br>Unleashed.</h2>
+                            <p>DropShare utilizes proprietary background optimizations and chunking algorithms to
+                                deliver unmatched reliability and high-speed delivery even on unstable connections.</p>
+                        </div>
+                        <div class="tech-stats">
+                            <div class="stat-box">
+                                <div class="stat-value">5GB</div>
+                                <div class="stat-label">Free Quota</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value"><i class="fa-solid fa-infinity" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <div class="stat-label">Speed Limit</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: CTA -->
+            <section class="scroll-section final-cta" id="sec-5">
+                <div class="scroll-content final-cta-content">
+                    <h2>Ready to elevate <br>your workflow?</h2>
+                    <a href="register.html" class="apple-btn btn-large"
+                        style="background: linear-gradient(135deg, #34d399, #818cf8); color: #000; padding: 1.25rem 3.5rem; font-size: 1.3rem; border: none; font-weight: 700;">Join
+                        DropShare Now</a>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="apple-footer">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <a href="#" class="logo"><i class="fa-solid fa-cloud"></i> DropShare</a>
+                    <p>The premium choice for sharing professional files securely worldwide.</p>
+                </div>
+                <div class="footer-links-grid">
+                    <div class="footer-col">
+                        <h4>Product</h4>
+                        <a href="#">Features</a>
+                        <a href="#">Security</a>
+                        <a href="#">Enterprise</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Company</h4>
+                        <a href="#">About Us</a>
+                        <a href="#">Careers</a>
+                        <a href="#">Blog</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Legal</h4>
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Terms of Service</a>
+                        <a href="#">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 DropShare Inc. All rights reserved.</span>
+                <span>Designed with precision.</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Ensure body has animation class for scripts -->
+    <script src="../js/bg-animation.js"></script>
+    <script>
+        // Scroll Magic for indicators
+        window.addEventListener('scroll', () => {
+            const indicator = document.getElementById('global-scroll-indicator');
+            if (window.scrollY > 200) {
+                indicator.style.opacity = '0';
+                indicator.style.pointerEvents = 'none';
+            } else {
+                indicator.style.opacity = '0.7';
+                indicator.style.pointerEvents = 'auto';
+            }
+        });
+
+        // Apple-style Scroll Logic for text sections
+        const sections = document.querySelectorAll('.scroll-section');
+
+        function updateScrollLogic() {
+            const viewportHeight = window.innerHeight;
+
+            sections.forEach((section) => {
+                const rect = section.getBoundingClientRect();
+                const sectionTop = rect.top;
+                const sectionHeight = rect.height;
+                const sectionCenter = sectionTop + sectionHeight / 2;
+
+                // Determine screen center relative to the section
+                const distanceFromCenter = sectionCenter - (viewportHeight / 2);
+                const threshold = viewportHeight * 0.45;
+
+                // Clear state
+                section.classList.remove('active', 'past', 'future');
+
+                if (distanceFromCenter < -threshold) {
+                    // Scrolled past
+                    section.classList.add('past');
+                } else if (distanceFromCenter > threshold) {
+                    // Yet to come
+                    section.classList.add('future');
+                } else {
+                    // Active (in-view)
+                    section.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', () => {
+            requestAnimationFrame(updateScrollLogic);
+        });
+
+        // Initial setup and force a scroll event processing immediately
+        window.scrollTo(window.scrollX, window.scrollY);
+        updateScrollLogic();
+
+    </script>
+</body>
+
+</html>

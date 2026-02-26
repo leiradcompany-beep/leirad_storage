@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared File — DropShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-glow: rgba(99, 102, 241, 0.3);
+            --bg: #05070f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hvr: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.07);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-muted: #64748b;
+            --error: #f43f5e;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at top, #0f172a, #05070f);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+        }
+
+        /* ── NAV ─────────────── */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5, 7, 15, 0.8);
+            backdrop-filter: blur(16px);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-link {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            background: var(--surface-hvr);
+        }
+
+        /* ── CARD ─────────────── */
+        .card {
+            width: 100%;
+            max-width: 460px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        /* ── LOADING ─────────── */
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 1.25rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── FILE VIEW ──────── */
+        .file-icon-wrap {
+            width: 88px;
+            height: 88px;
+            border-radius: 24px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.6rem;
+            color: var(--primary-light);
+            margin: 0 auto 1.75rem;
+        }
+
+        .file-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-size-label {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 1.75rem;
+        }
+
+        /* ── EXPIRY BADGE ───── */
+        .expiry-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            background: rgba(245, 158, 11, 0.07);
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1.75rem;
+            font-size: 0.88rem;
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .expiry-row i {
+            opacity: 0.8;
+        }
+
+        .eternal-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            background: rgba(16, 185, 129, 0.07);
+            border: 1px solid rgba(16, 185, 129, 0.18);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1.75rem;
+            font-size: 0.88rem;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* ── DOWNLOAD BTN ────── */
+        .btn-download {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-download:active {
+            transform: scale(0.97);
+        }
+
+        /* ── EXPIRED STATE ───── */
+        .expired-card {
+            width: 100%;
+            max-width: 460px;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .expired-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            color: var(--error);
+            margin: 0 auto 2rem;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+            }
+
+            50% {
+                box-shadow: 0 0 0 12px rgba(244, 63, 94, 0.08);
+            }
+        }
+
+        .expired-title {
+            font-size: 1.9rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .expired-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            max-width: 320px;
+            margin: 0 auto 2rem;
+        }
+
+        .expired-detail {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(244, 63, 94, 0.06);
+            border: 1px solid rgba(244, 63, 94, 0.15);
+            padding: 0.6rem 1.25rem;
+            border-radius: 100px;
+            font-size: 0.82rem;
+            color: var(--error);
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1.6rem;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s;
+        }
+
+        .btn-home:hover {
+            background: var(--surface-hvr);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* ── INVALID STATE ────── */
+        .invalid-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(100, 116, 139, 0.08);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            color: var(--text-muted);
+            margin: 0 auto 2rem;
+        }
+
+        /* ── ANIMATIONS ─────── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-up {
+            animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Loading text */
+        #loadingState p,
+        #fileState p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <a href="index.html" class="logo">DropShare</a>
+        <a href="index.html" class="nav-link"><i class="fas fa-arrow-left"></i> Home</a>
+    </nav>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="card fade-up">
+        <div class="spinner"></div>
+        <p>Verifying share link…</p>
+    </div>
+
+    <!-- File Ready State -->
+    <div id="fileState" class="card fade-up" style="display:none;">
+        <div class="file-icon-wrap" id="fileIconWrap">
+            <i class="fas fa-file-alt" id="fileTypeIcon"></i>
+        </div>
+        <div class="file-title" id="fileName">File Name</div>
+        <div class="file-size-label" id="fileSize">—</div>
+
+        <!-- Expiry / Eternal badge inserted here by JS -->
+        <div id="expiryBadge"></div>
+
+        <!-- Owner Note (shown if present) -->
+        <div id="noteCard" style="display:none; margin-bottom: 1.5rem; text-align: left; padding: 1rem 1.25rem;
+             background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.18); border-radius: 14px;">
+            <div
+                style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--primary-light);text-transform:uppercase;margin-bottom:0.4rem;">
+                <i class="fas fa-message"></i> Message from owner
+            </div>
+            <p id="noteText" style="font-size:0.9rem;color:var(--text-sub);line-height:1.6;white-space:pre-wrap;"></p>
+        </div>
+
+        <button id="downloadBtn" class="btn-download">
+            <i class="fas fa-download"></i> Download File
+        </button>
+    </div>
+
+    <!-- Expired State -->
+    <div id="expiredState" class="expired-card fade-up" style="display:none;">
+        <div class="expired-icon"><i class="fas fa-clock"></i></div>
+        <h1 class="expired-title">Link Expired</h1>
+        <p class="expired-subtitle">
+            This share link has passed its expiration date and is no longer accessible.
+            Please contact the file owner for a new link.
+        </p>
+        <div class="expired-detail">
+            <i class="fas fa-calendar-xmark"></i>
+            This link is no longer valid
+        </div>
+        <br>
+        <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
+    </div>
+
+    <!-- Invalid State (wrong token, deleted, etc.) -->
+    <div id="invalidState" class="expired-card fade-up" style="display:none;">
+        <div class="invalid-icon"><i class="fas fa-link-slash"></i></div>
+        <h1 class="expired-title" style="color: var(--text-sub);">Link Not Found</h1>
+        <p class="expired-subtitle" id="invalidMessage">
+            This share link is invalid or the file has been removed.
+        </p>
+        <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        // Check local cache for already-expired links
+        if (!token) {
+            showInvalid('No share token was found in the URL.');
+        } else if (localStorage.getItem(`expired_${token}`)) {
+            showExpired();
+        } else {
+            fetchFileInfo();
+        }
+
+        async function fetchFileInfo() {
+            try {
+                const file = await api.get(`get_shared_file.php?token=${token}`);
+                displayFile(file);
+            } catch (err) {
+                // 410 = gone (expired), 404 = not found
+                if (err.status === 410) {
+                    localStorage.setItem(`expired_${token}`, 'true');
+                    showExpired();
+                } else {
+                    showInvalid(err.message || 'The share link is invalid or has been removed.');
+                }
+            }
+        }
+
+        function displayFile(file) {
+            hide('loadingState');
+            show('fileState');
+
+            document.getElementById('fileName').textContent = file.original_name;
+            document.getElementById('fileSize').textContent = formatSize(file.file_size);
+
+            // Set file type icon
+            const icon = getFileIcon(file.file_type || '');
+            document.getElementById('fileTypeIcon').className = icon;
+
+            // Expiry badge
+            const badge = document.getElementById('expiryBadge');
+            if (file.remaining_seconds !== null && file.remaining_seconds !== undefined) {
+                badge.innerHTML = `
+                    <div class="expiry-row">
+                        <i class="fas fa-hourglass-half"></i>
+                        Expires in: <span id="timerDisplay" style="font-variant-numeric: tabular-nums;">…</span>
+                    </div>`;
+                startCountdown(file.remaining_seconds);
+            } else {
+                badge.innerHTML = `
+                    <div class="eternal-row">
+                        <i class="fas fa-infinity"></i> Eternal Link — Never Expires
+                    </div>`;
+            }
+
+            // Note from owner
+            if (file.share_note && file.share_note.trim()) {
+                document.getElementById('noteText').textContent = file.share_note.trim();
+                document.getElementById('noteCard').style.display = 'block';
+            }
+
+            document.getElementById('downloadBtn').onclick = () => {
+                window.location.href = `${API_BASE}download.php?token=${token}`;
+            };
+        }
+
+        function startCountdown(seconds) {
+            let remaining = Math.max(0, Math.floor(seconds));
+            const el = document.getElementById('timerDisplay');
+
+            const tick = () => {
+                if (remaining <= 0) {
+                    localStorage.setItem(`expired_${token}`, 'true');
+                    localStorage.removeItem(`expiry_${token}`);
+                    hide('fileState');
+                    showExpired();
+                    return;
+                }
+
+                const d = Math.floor(remaining / 86400);
+                const h = Math.floor((remaining % 86400) / 3600);
+                const m = Math.floor((remaining % 3600) / 60);
+                const s = Math.floor(remaining % 60);
+
+                let str = '';
+                if (d > 0) str += `${d}d `;
+                str += `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+                if (el) el.textContent = str;
+
+                remaining--;
+            };
+
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        function showExpired() {
+            hide('loadingState');
+            hide('fileState');
+            hide('invalidState');
+            show('expiredState');
+        }
+
+        function showInvalid(message) {
+            hide('loadingState');
+            hide('fileState');
+            hide('expiredState');
+            document.getElementById('invalidMessage').textContent = message;
+            show('invalidState');
+        }
+
+        function show(id) { document.getElementById(id).style.display = 'block'; }
+        function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+        function getFileIcon(type) {
+            if (type.includes('image')) return 'fas fa-file-image';
+            if (type.includes('video')) return 'fas fa-file-video';
+            if (type.includes('audio')) return 'fas fa-file-audio';
+            if (type.includes('pdf')) return 'fas fa-file-pdf';
+            if (type.includes('zip') || type.includes('rar') || type.includes('compressed')) return 'fas fa-file-zipper';
+            if (type.includes('word') || type.includes('document')) return 'fas fa-file-word';
+            if (type.includes('sheet') || type.includes('excel')) return 'fas fa-file-excel';
+            if (type.includes('text') || type.includes('plain')) return 'fas fa-file-lines';
+            if (type.includes('code') || type.includes('javascript') || type.includes('html')) return 'fas fa-file-code';
+            return 'fas fa-file-alt';
+        }
+
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+
+</html>

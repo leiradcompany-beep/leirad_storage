@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Folder — DropShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-glow: rgba(99, 102, 241, 0.3);
+            --bg: #05070f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hvr: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.07);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-muted: #64748b;
+            --error: #f43f5e;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at top, #0f172a, #05070f);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 3rem 1.5rem 6rem;
+        }
+
+        /* ── NAV ─────────────── */
+        .nav {
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-link {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.25s;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            background: var(--surface-hvr);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ── PAGE WRAPPER ─────── */
+        .page {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        /* ── FOLDER HEADER ────── */
+        .folder-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .folder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 0.45rem 1.1rem;
+            border-radius: 100px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--primary-light);
+            margin-bottom: 1.25rem;
+        }
+
+        .folder-title {
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            word-break: break-all;
+            line-height: 1.15;
+            margin-bottom: 0.75rem;
+        }
+
+        .expiry-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            padding: 0.45rem 1rem;
+            border-radius: 100px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .eternal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            padding: 0.45rem 1rem;
+            border-radius: 100px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        /* ── FILE LIST CARD ────── */
+        .file-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .file-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-count-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        .file-count-label strong {
+            color: #fff;
+        }
+
+        .btn-zip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border: none;
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-zip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-zip:active {
+            transform: scale(0.96);
+        }
+
+        .btn-zip.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* ── ITEMS ─────────────── */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .file-ic {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--primary-light);
+            flex-shrink: 0;
+        }
+
+        .folder-ic {
+            background: rgba(251, 191, 36, 0.08);
+            border-color: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .file-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .btn-dl {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .btn-dl:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            transform: scale(1.08);
+        }
+
+        /* ── SUBFOLDER ITEM ───── */
+        .subfolder-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .subfolder-item:last-child {
+            border-bottom: none;
+        }
+
+        /* ── STATES ─────────────── */
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            opacity: 0.15;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-state p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ── ERROR ──────────────── */
+        .error-state {
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: var(--error);
+            margin: 0 auto 1.5rem;
+        }
+
+        .error-state h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+        }
+
+        .error-state p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s;
+        }
+
+        .btn-home:hover {
+            background: var(--surface-hvr);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* ── FADE ANIMATION ──── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-up {
+            animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+            }
+
+            50% {
+                box-shadow: 0 0 0 14px rgba(244, 63, 94, 0.07);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <a href="index.html" class="logo">DropShare</a>
+        <a href="index.html" class="nav-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    </nav>
+
+    <div class="page">
+        <!-- Loading -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner"></div>
+            <p>Verifying share link…</p>
+        </div>
+
+        <!-- Folder View -->
+        <div id="folderView" style="display:none;" class="fade-up">
+            <div class="folder-header">
+                <div class="folder-badge">
+                    <i class="fas fa-folder-open"></i> Shared Folder
+                </div>
+                <div class="folder-title" id="folderName">Folder</div>
+                <div id="expiryContainer"></div>
+            </div>
+
+            <!-- Owner Note (injected by JS if present) -->
+            <div id="noteCard" style="display:none; margin-bottom: 1.5rem; padding: 1rem 1.25rem;
+                 background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.18); border-radius: 16px;">
+                <div
+                    style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--primary-light);text-transform:uppercase;margin-bottom:0.5rem;">
+                    <i class="fas fa-message"></i> Message from owner
+                </div>
+                <p id="noteText"
+                    style="font-size:0.9rem;color:var(--text-sub);line-height:1.7;white-space:pre-wrap; margin:0;"></p>
+            </div>
+
+            <div class="file-card">
+                <div class="file-card-header">
+                    <span class="file-count-label" id="fileCountLabel">Loading…</span>
+                    <a id="btnZip" class="btn-zip" style="display:none;" href="#" onclick="downloadZip(event)">
+                        <i class="fas fa-file-zipper"></i>
+                        Download All (.zip)
+                    </a>
+                </div>
+                <div class="item-list" id="itemList"></div>
+            </div>
+        </div>
+
+        <!-- Expired State -->
+        <div id="expiredState" style="display:none;" class="error-state fade-up">
+            <div class="error-icon"
+                style="background:rgba(244,63,94,0.08);border-color:rgba(244,63,94,0.2);color:var(--error);animation:pulse 2.5s ease-in-out infinite;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h2>Link Expired</h2>
+            <p>This shared folder link has passed its expiration date and is no longer accessible. Please contact the
+                owner for a new link.</p>
+            <div
+                style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.15);padding:0.5rem 1.1rem;border-radius:100px;font-size:0.8rem;color:var(--error);font-weight:600;margin-bottom:1.5rem;">
+                <i class="fas fa-calendar-xmark"></i> This link is no longer valid
+            </div>
+            <br>
+            <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
+        </div>
+
+        <!-- Invalid / Not Found State -->
+        <div id="invalidState" style="display:none;" class="error-state fade-up">
+            <div class="error-icon"
+                style="background:rgba(100,116,139,0.08);border-color:rgba(100,116,139,0.2);color:var(--text-muted);">
+                <i class="fas fa-link-slash"></i>
+            </div>
+            <h2 style="color:var(--text-sub);">Link Not Found</h2>
+            <p id="invalidMessage">This share link is invalid or the folder has been removed.</p>
+            <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        let folderData = null;
+
+        if (!token) {
+            showInvalid('No folder token was provided in the URL.');
+        } else if (localStorage.getItem(`expired_folder_${token}`)) {
+            showExpired();
+        } else {
+            fetchFolder();
+        }
+
+        async function fetchFolder() {
+            try {
+                folderData = await api.get(`get_shared_folder.php?token=${token}`);
+                render(folderData);
+            } catch (err) {
+                if (err.status === 410) {
+                    localStorage.setItem(`expired_folder_${token}`, 'true');
+                    showExpired();
+                } else {
+                    showInvalid(err.message || 'This folder might have been deleted or the link is invalid.');
+                }
+            }
+        }
+
+        function render(data) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('folderView').style.display = 'block';
+            document.getElementById('folderName').textContent = data.name;
+
+            // Expiry badge
+            const expiryContainer = document.getElementById('expiryContainer');
+            if (data.remaining_seconds !== null && data.remaining_seconds !== undefined) {
+                expiryContainer.innerHTML = `<div class="expiry-badge"><i class="fas fa-hourglass-half"></i> Expires in: <span id="timer">…</span></div>`;
+                startTimer(data.remaining_seconds);
+            } else {
+                expiryContainer.innerHTML = `<div class="eternal-badge"><i class="fas fa-infinity"></i> Eternal Link</div>`;
+            }
+
+            // Owner note
+            if (data.share_note && data.share_note.trim()) {
+                document.getElementById('noteText').textContent = data.share_note.trim();
+                document.getElementById('noteCard').style.display = 'block';
+            }
+
+            const files = data.files || [];
+            const subfolders = data.subfolders || [];
+            const totalItems = files.length + subfolders.length;
+
+            // File count label
+            let label = '';
+            if (files.length > 0) label += `<strong>${files.length}</strong> file${files.length !== 1 ? 's' : ''}`;
+            if (subfolders.length > 0) label += (label ? ' &amp; ' : '') + `<strong>${subfolders.length}</strong> folder${subfolders.length !== 1 ? 's' : ''}`;
+            document.getElementById('fileCountLabel').innerHTML = label || 'Empty folder';
+
+            // Show ZIP button if more than one file
+            if (files.length > 1) {
+                const btn = document.getElementById('btnZip');
+                btn.style.display = 'flex';
+            }
+
+            const list = document.getElementById('itemList');
+            let html = '';
+
+            subfolders.forEach(sub => {
+                html += `
+                <div class="file-item">
+                    <div class="file-ic folder-ic"><i class="fas fa-folder"></i></div>
+                    <div class="file-info">
+                        <div class="file-name">${escHtml(sub.name)}</div>
+                        <div class="file-size">Folder</div>
+                    </div>
+                </div>`;
+            });
+
+            files.forEach(file => {
+                const icon = getFileIcon(file.file_type || '');
+                html += `
+                <div class="file-item">
+                    <div class="file-ic"><i class="${icon}"></i></div>
+                    <div class="file-info">
+                        <div class="file-name">${escHtml(file.original_name)}</div>
+                        <div class="file-size">${formatSize(file.file_size)}</div>
+                    </div>
+                    <a class="btn-dl" title="Download" href="${API_BASE}download_from_folder.php?folder_token=${token}&file_id=${file.id}">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>`;
+            });
+
+            if (totalItems === 0) {
+                html = `<div class="empty-state"><i class="fas fa-box-open"></i><p>This shared folder is empty.</p></div>`;
+            }
+
+            list.innerHTML = html;
+        }
+
+        function downloadZip(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnZip');
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing ZIP…';
+
+            // Trigger download then restore button
+            const href = `${API_BASE}download_folder_zip.php?folder_token=${token}`;
+            const a = document.createElement('a');
+            a.href = href;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => {
+                btn.classList.remove('loading');
+                btn.innerHTML = '<i class="fas fa-file-zipper"></i> Download All (.zip)';
+            }, 3000);
+        }
+
+        function startTimer(seconds) {
+            const el = document.getElementById('timer');
+            const tick = () => {
+                if (seconds <= 0) {
+                    localStorage.setItem(`expired_folder_${token}`, 'true');
+                    showExpired();
+                    return;
+                }
+                const d = Math.floor(seconds / 86400);
+                const h = Math.floor((seconds % 86400) / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                let str = '';
+                if (d > 0) str += `${d}d `;
+                str += `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+                if (el) el.textContent = str;
+                seconds--;
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        function showExpired() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('folderView').style.display = 'none';
+            document.getElementById('expiredState').style.display = 'block';
+        }
+
+        function showInvalid(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('folderView').style.display = 'none';
+            if (document.getElementById('invalidMessage')) {
+                document.getElementById('invalidMessage').textContent = message;
+            }
+            document.getElementById('invalidState').style.display = 'block';
+        }
+
+        function getFileIcon(type) {
+            if (type.includes('image')) return 'fas fa-file-image';
+            if (type.includes('video')) return 'fas fa-file-video';
+            if (type.includes('audio')) return 'fas fa-file-audio';
+            if (type.includes('pdf')) return 'fas fa-file-pdf';
+            if (type.includes('zip') || type.includes('compressed') || type.includes('rar')) return 'fas fa-file-zipper';
+            if (type.includes('word') || type.includes('document')) return 'fas fa-file-word';
+            if (type.includes('sheet') || type.includes('excel')) return 'fas fa-file-excel';
+            if (type.includes('text') || type.includes('plain')) return 'fas fa-file-lines';
+            if (type.includes('code') || type.includes('javascript') || type.includes('html') || type.includes('css')) return 'fas fa-file-code';
+            return 'fas fa-file-alt';
+        }
+
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function escHtml(str) {
+            const d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+    </script>
+</body>
+
+</html>

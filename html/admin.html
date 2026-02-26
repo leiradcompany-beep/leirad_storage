@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console — DropShare</title>
+    <script src="../js/security-deterrents.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #020408;
+            --sidebar-bg: rgba(10, 14, 23, 0.75);
+            --surface: rgba(255, 255, 255, 0.02);
+            --surface-hvr: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.06);
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.3);
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --error: #f43f5e;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --text-sub: #94a3b8;
+            --text: #f8fafc;
+            --sidebar-w: 280px;
+            --sidebar-collapsed-w: 88px;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #111827, #05070a);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* ─── SIDEBAR ──────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: width var(--transition);
+        }
+
+        /* Collapsed state */
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-w);
+        }
+
+        /* Toggle button */
+        .sb-toggle {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: .75rem;
+            transition: all .18s;
+            margin-left: auto;
+        }
+
+        .sb-toggle:hover {
+            background: var(--surface-hvr);
+            color: var(--text);
+            border-color: rgba(255, 255, 255, .14);
+        }
+
+        .sb-toggle i {
+            transition: transform var(--transition);
+        }
+
+        .sidebar.collapsed .sb-toggle i {
+            transform: rotate(180deg);
+        }
+
+        /* Brand: hide text when collapsed */
+        .sb-brand-text {
+            overflow: hidden;
+            transition: opacity var(--transition), width var(--transition);
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sb-brand-text {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
+        }
+
+        /* Section label */
+        .sb-label {
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity var(--transition), max-height var(--transition);
+            max-height: 30px;
+        }
+
+        .sidebar.collapsed .sb-label {
+            opacity: 0;
+            max-height: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Nav item span (text) */
+        .sb-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 180px;
+        }
+
+        .sidebar.collapsed .sb-item span {
+            opacity: 0;
+            max-width: 0;
+            pointer-events: none;
+        }
+
+        /* Center icons when collapsed */
+        .sidebar.collapsed .sb-item {
+            justify-content: center;
+            padding: 0.72rem 0;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .sb-item i {
+            width: 100%;
+            font-size: 1.1rem;
+        }
+
+        /* Tooltip for collapsed items */
+        .sb-item {
+            position: relative;
+        }
+
+        .sb-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e2336;
+            color: var(--text);
+            padding: .38rem .75rem;
+            border-radius: 7px;
+            font-size: .78rem;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 99;
+            opacity: 0;
+            transition: opacity .15s ease;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+        }
+
+        .sidebar.collapsed .sb-item:hover::after {
+            opacity: 1;
+        }
+
+        /* Footer: hide pill text and logout text when collapsed */
+        .sb-footer {
+            align-items: center;
+        }
+
+        .u-meta {
+            overflow: hidden;
+            transition: opacity var(--transition);
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .user-pill {
+            justify-content: center;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .u-meta,
+        .sidebar.collapsed .sb-logout-text {
+            display: none;
+        }
+
+        .sb-brand {
+            padding: 2rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 1rem;
+        }
+
+        .sb-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
+            flex-shrink: 0;
+        }
+
+        .sb-name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.01em;
+        }
+
+        .sb-tag {
+            font-size: 0.62rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.8;
+        }
+
+        .sb-nav {
+            flex: 1;
+            padding: 0 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            overflow-y: auto;
+        }
+
+        .sb-label {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding: 0 0.8rem;
+            margin: 1rem 0 0.5rem;
+            opacity: 0.6;
+        }
+
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .sb-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            opacity: 0.6;
+        }
+
+        .sb-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        .sb-item:hover i {
+            opacity: 1;
+        }
+
+        .sb-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .sb-item.active i {
+            opacity: 1;
+            color: var(--primary-light);
+        }
+
+        .sb-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 25%;
+            bottom: 25%;
+            width: 3px;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .sb-footer {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 1rem;
+            border-radius: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .user-pill:hover {
+            background: var(--surface-hvr);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .u-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .82rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .u-name {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .u-role {
+            font-size: .67rem;
+            color: var(--primary-light);
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .6rem;
+            padding: .75rem;
+            border-radius: 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: .81rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: all .18s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(244, 63, 94, .1);
+            border-color: rgba(244, 63, 94, .3);
+            color: var(--error);
+        }
+
+        /* ─── TABS ─────────────────────── */
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ─── MAIN ─────────────────────── */
+        .main-area {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left var(--transition);
+        }
+
+        body.sidebar-collapsed .main-area {
+            margin-left: var(--sidebar-collapsed-w);
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(2, 4, 8, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 1.5rem 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .topbar-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #fff;
+            background: linear-gradient(to bottom, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .topbar-sub {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .content {
+            padding: 3rem;
+            max-width: 1600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+        }
+
+        /* ─── STATS ────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.75rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.02));
+            pointer-events: none;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .ico-purple {
+            background: rgba(99, 102, 241, 0.12);
+            color: #818cf8;
+        }
+
+        .ico-green {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+        }
+
+        .ico-orange {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+        }
+
+        .stat-label {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 4px;
+        }
+
+        .stat-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.01em;
+        }
+
+        /* ─── CHARTS ───────────────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .chart-card,
+        .act-card,
+        .sec-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2.25rem;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .chart-card:hover,
+        .sec-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .chart-hd,
+        .act-hd,
+        .sec-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+
+        .chart-title,
+        .act-title,
+        .sec-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .chart-sub,
+        .act-sub,
+        .sec-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .chart-wrap {
+            height: 300px;
+            width: 100%;
+        }
+
+        /* ─── ACTIVITY ──────────────────── */
+        .act-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.3rem;
+        }
+
+        .act-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: .9rem;
+        }
+
+        .act-title {
+            font-size: .87rem;
+            font-weight: 700;
+        }
+
+        .act-sub {
+            font-size: .71rem;
+            color: var(--text-muted);
+            margin-top: .1rem;
+        }
+
+        .act-item {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            padding: .62rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+        }
+
+        .act-item:last-child {
+            border-bottom: none;
+        }
+
+        .act-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            flex-shrink: 0;
+        }
+
+        /* ─── SECTION CARD ─────────────── */
+        .sec-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .sec-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.05rem 1.35rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sec-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .sec-sub {
+            font-size: .82rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .srch-wrap {
+            position: relative;
+        }
+
+        .srch-wrap i {
+            position: absolute;
+            left: .72rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: .77rem;
+            pointer-events: none;
+        }
+
+        .srch-inp {
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .44rem .85rem .44rem 2.15rem;
+            color: var(--text);
+            font-size: .8rem;
+            font-family: 'Inter', sans-serif;
+            width: 210px;
+            transition: all .18s;
+        }
+
+        .srch-inp:focus {
+            outline: none;
+            background: rgba(99, 102, 241, .06);
+        }
+
+        .srch-inp::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ─── TABLES ───────────────────── */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+            margin-top: 1rem;
+        }
+
+        th {
+            padding: 1.25rem 1.5rem;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.015);
+            transition: var(--transition);
+        }
+
+        tr {
+            transition: transform 0.3s;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        tr td:first-child {
+            border-radius: 16px 0 0 16px;
+        }
+
+        tr td:last-child {
+            border-radius: 0 16px 16px 0;
+        }
+
+        tr:hover td:first-child {
+            border-left: 2px solid var(--primary);
+        }
+
+        .badge {
+            padding: 0.35rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-admin {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+
+        .badge-user {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .act-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .act-btn:hover:not(:disabled) {
+            background: var(--surface-hvr);
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .act-btn.del:hover {
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .act-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--text-muted);
+            opacity: 0.15;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* ─── MODAL ────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #0f172a;
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8);
+            animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-ico {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-ico.danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+        }
+
+        .modal-ico.warning {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+        }
+
+        .modal h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        .modal p {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .modal-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .mbtn {
+            padding: 1rem;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .mbtn-cancel {
+            background: var(--surface);
+            border-color: var(--border);
+            color: #fff;
+        }
+
+        .mbtn-cancel:hover {
+            background: var(--surface-hvr);
+        }
+
+        .mbtn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .mbtn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .mbtn-warn {
+            background: #f59e0b;
+            color: #000;
+        }
+
+        .mbtn-warn:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Refresh Button */
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        .refresh-btn i {
+            font-size: 0.75rem;
+            color: var(--primary-light);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══ SIDEBAR ════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sb-brand">
+            <div class="sb-icon"><i class="fas fa-layer-group"></i></div>
+            <div class="sb-brand-text">
+                <div class="sb-name">DropShare</div>
+                <div class="sb-tag">Admin Console</div>
+            </div>
+            <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+
+        <nav class="sb-nav">
+            <div class="sb-label">Main</div>
+            <div class="sb-item active" data-tab="overview" data-tooltip="Overview" onclick="switchTab('overview')">
+                <i class="fas fa-chart-pie"></i><span>Overview</span>
+            </div>
+            <div class="sb-item" data-tab="users" data-tooltip="Users" onclick="switchTab('users')">
+                <i class="fas fa-users"></i><span>Users</span>
+            </div>
+            <div class="sb-item" data-tab="files" data-tooltip="Global Files" onclick="switchTab('files')">
+                <i class="fas fa-folder-open"></i><span>Global Files</span>
+            </div>
+        </nav>
+
+        <div class="sb-footer">
+            <div class="user-pill">
+                <div class="u-avatar" id="adminInitial">A</div>
+                <div class="u-meta">
+                    <div class="u-name" id="adminName">Admin</div>
+                    <div class="u-role">Administrator</div>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="confirmLogout()" title="Sign Out">
+                <i class="fas fa-right-from-bracket"></i>
+                <span class="sb-logout-text">Sign Out</span>
+            </button>
+        </div>
+
+    </aside>
+
+    <!-- ═══ MAIN ════════════════════════════════ -->
+    <div class="main-area">
+
+        <header class="topbar">
+            <div>
+                <div class="topbar-title" id="topbarTitle">System Overview</div>
+                <div class="topbar-sub" id="topbarSub">Real-time analytics and platform health</div>
+            </div>
+            <button class="refresh-btn" onclick="refreshCurrent()">
+                <i class="fas fa-arrows-rotate" id="refreshIcon"></i> Refresh
+            </button>
+        </header>
+
+        <div class="content">
+
+            <!-- OVERVIEW -->
+            <div id="overview" class="tab-pane active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon ico-purple"><i class="fas fa-users"></i></div>
+                        <div>
+                            <div class="stat-label">Total Users</div>
+                            <div class="stat-val" id="totalUsers">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon ico-green"><i class="fas fa-file-lines"></i></div>
+                        <div>
+                            <div class="stat-label">Total Files</div>
+                            <div class="stat-val" id="totalFiles">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon ico-orange"><i class="fas fa-hard-drive"></i></div>
+                        <div>
+                            <div class="stat-label">Storage Used</div>
+                            <div class="stat-val" id="totalStorage">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-hd">
+                            <div>
+                                <div class="chart-title">User Registrations</div>
+                                <div class="chart-sub">Last 7 days</div>
+                            </div>
+                            <span style="font-size:.72rem;color:var(--text-muted);">
+                                <i class="fas fa-circle"
+                                    style="color:var(--primary-light);font-size:.42rem;vertical-align:2px;"></i> New
+                                users
+                            </span>
+                        </div>
+                        <div class="chart-wrap"><canvas id="userGrowthChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-hd">
+                            <div>
+                                <div class="chart-title">Storage Distribution</div>
+                                <div class="chart-sub">Top 5 users</div>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="storageDistChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="act-card">
+                    <div class="act-hd">
+                        <div>
+                            <div class="act-title">Recent Activity</div>
+                            <div class="act-sub">Latest uploads across all users</div>
+                        </div>
+                    </div>
+                    <div id="recentUploads"></div>
+                </div>
+            </div>
+
+            <!-- USERS -->
+            <div id="users" class="tab-pane">
+                <div class="sec-card">
+                    <div class="sec-hd">
+                        <div>
+                            <div class="sec-title">User Accounts</div>
+                            <div class="sec-sub" id="usersCount">—</div>
+                        </div>
+                        <div class="srch-wrap">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input class="srch-inp" id="userSearch" type="text" placeholder="Search users…">
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- FILES -->
+            <div id="files" class="tab-pane">
+                <div class="sec-card">
+                    <div class="sec-hd">
+                        <div>
+                            <div class="sec-title">Global File Registry</div>
+                            <div class="sec-sub" id="filesCount">—</div>
+                        </div>
+                        <div class="srch-wrap">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input class="srch-inp" id="fileSearch" type="text" placeholder="Search files…">
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Owner</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══ MODAL ═══════════════════════════════ -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-ico" id="mIco"><i id="mIcoSym" class="fas fa-trash"></i></div>
+            <h3 id="mTitle">Confirm</h3>
+            <p id="mMsg">Are you sure?</p>
+            <div class="modal-btns">
+                <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="mbtn" id="mConfirm" onclick="execConfirm()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="../js/api.js"></script>
+    <script src="../js/ui.js"></script>
+    <script>
+        /* AUTHENTICATION & INITIALIZATION */
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'admin') {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('adminName').textContent = user.username;
+            document.getElementById('adminInitial').textContent = user.username.charAt(0).toUpperCase();
+        }
+
+        /* GLOBALS & STATE */
+        let allUsers = [], allFiles = [], charts = {};
+        let currentTab = 'overview', loopId = null, pendFn = null;
+
+        /* SIDEBAR LOGIC */
+        (function () {
+            if (localStorage.getItem('adminSidebarCollapsed') === '1') {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const collapsed = sb.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed', collapsed);
+            localStorage.setItem('adminSidebarCollapsed', collapsed ? '1' : '0');
+        }
+
+        /* TAB NAVIGATION */
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sb-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelector(`.sb-item[data-tab="${tab}"]`)?.classList.add('active');
+
+            currentTab = tab;
+            const titles = {
+                overview: ['System Overview', 'Real-time analytics and platform health'],
+                users: ['User Management', 'Manage regular user accounts'],
+                files: ['Global File Registry', 'All files across the platform']
+            };
+
+            document.getElementById('topbarTitle').textContent = titles[tab][0];
+            document.getElementById('topbarSub').textContent = titles[tab][1];
+
+            clearInterval(loopId);
+            loopId = null;
+
+            if (tab === 'overview') {
+                loadOverview();
+                loopId = setInterval(loadOverview, 30000);
+            } else if (tab === 'users') {
+                loadUsers();
+            } else if (tab === 'files') {
+                loadFiles();
+            }
+        }
+
+        function refreshCurrent() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            setTimeout(() => icon.classList.remove('fa-spin'), 700);
+
+            if (currentTab === 'overview') loadOverview();
+            else if (currentTab === 'users') loadUsers();
+            else if (currentTab === 'files') loadFiles();
+        }
+
+        /* DATA LOADING — OVERVIEW */
+        async function loadOverview() {
+            try {
+                const s = await api.get('admin/stats.php');
+                document.getElementById('totalUsers').textContent = s.total_users;
+                document.getElementById('totalFiles').textContent = s.total_files;
+                document.getElementById('totalStorage').textContent = fmtSz(s.total_storage_used);
+                renderActivity(s.recent_uploads || []);
+                renderCharts(s.user_growth || [], s.storage_dist || []);
+            } catch (e) { Toast.error('Analytics sync failed: ' + e.message); }
+        }
+
+        function renderActivity(ups) {
+            const el = document.getElementById('recentUploads');
+            if (!ups.length) {
+                el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No recent activity</p></div>`;
+                return;
+            }
+            el.innerHTML = ups.map(u => `
+                <div class="act-item" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px; margin-bottom: 0.75rem;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary-glow);"></div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${x(u.original_name)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">by <span style="color: var(--primary-light);">${x(u.username)}</span></div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">${ago(u.uploaded_at)}</div>
+                </div>`).join('');
+        }
+
+        function renderCharts(growth, dist) {
+            Chart.defaults.color = 'rgba(255,255,255,0.4)';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            if (charts.g) charts.g.destroy();
+            if (charts.d) charts.d.destroy();
+
+            const labels = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                return d.toISOString().split('T')[0];
+            });
+            const gmap = Object.fromEntries(growth.map(g => [g.date, parseInt(g.count)]));
+            const gdata = labels.map(l => gmap[l] || 0);
+
+            const ctxG = document.getElementById('userGrowthChart').getContext('2d');
+            const gradG = ctxG.createLinearGradient(0, 0, 0, 300);
+            gradG.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+            gradG.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            charts.g = new Chart(ctxG, {
+                type: 'line',
+                data: {
+                    labels: labels.map(l => new Date(l).toLocaleDateString('en', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        data: gdata,
+                        borderColor: '#6366f1',
+                        backgroundColor: gradG,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#818cf8',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            charts.d = new Chart(document.getElementById('storageDistChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: dist.length ? dist.map(d => d.username) : ['No data'],
+                    datasets: [{
+                        data: dist.length ? dist.map(d => parseInt(d.total_size)) : [1],
+                        backgroundColor: dist.length ? ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#a855f7'] : ['rgba(255,255,255,.06)'],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.6)', padding: 20, font: { size: 11, weight: 600 } } },
+                        tooltip: { backgroundColor: '#1e293b', titleColor: '#fff', bodyColor: '#cbd5e1', padding: 12, borderRadius: 12 }
+                    }
+                }
+            });
+        }
+
+        /* DATA LOADING — USERS */
+        async function loadUsers() {
+            setLoader('usersTableBody', 5);
+            try {
+                allUsers = await api.get('admin/users.php');
+                document.getElementById('usersCount').textContent = `${allUsers.length} active account${allUsers.length !== 1 ? 's' : ''}`;
+                renderUsers(allUsers);
+                const inp = document.getElementById('userSearch');
+                inp.oninput = () => {
+                    const q = inp.value.toLowerCase();
+                    renderUsers(allUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+                };
+            } catch (e) { Toast.error('User database unreachable: ' + e.message); }
+        }
+
+        function renderUsers(list) {
+            const tb = document.getElementById('usersTableBody');
+            if (!list.length) { tb.innerHTML = emptyRow(5, 'fa-users-slash', 'No accounts found matching your query'); return; }
+            tb.innerHTML = list.map(u => {
+                const isAdmin = u.role === 'admin';
+                return `<tr class="${isAdmin ? 'protected-row' : ''}">
+                    <td>
+                        <div style="display:flex;align-items:center;gap:1rem;">
+                            <div style="width:40px;height:40px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-light);border:1px solid var(--border);">${x(u.username.charAt(0).toUpperCase())}</div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.95rem;color:#fff;">${x(u.username)}</div>
+                                ${isAdmin ? `<div style="display:flex;align-items:center;gap:0.3rem;font-size:0.65rem;color:var(--warning);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;"><i class="fas fa-shield-halved"></i> Protected</div>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color:var(--text-sub); font-weight:500;">${x(u.email)}</td>
+                    <td><span class="badge ${isAdmin ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
+                    <td style="color:var(--text-muted);font-size:.8rem; font-weight:600;">${fmtDt(u.created_at)}</td>
+                    <td><div class="actions-cell">
+                        <button class="act-btn" title="Promote to Admin" onclick="${!isAdmin ? `doRoleChange(${u.id},'${x(u.username)}','admin')` : 'void 0'}" ${isAdmin ? 'disabled' : ''}>
+                            <i class="fas fa-shield-halved"></i>
+                        </button>
+                        <button class="act-btn del" title="Terminate Account" onclick="${!isAdmin ? `doDeleteUser(${u.id},'${x(u.username)}')` : 'void 0'}" ${isAdmin ? 'disabled' : ''}>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        /* DATA LOADING — FILES */
+        async function loadFiles() {
+            setLoader('filesTableBody', 5);
+            try {
+                allFiles = await api.get('admin/files.php');
+                document.getElementById('filesCount').textContent = `${allFiles.length} file${allFiles.length !== 1 ? 's' : ''} indexed`;
+                renderFiles(allFiles);
+                const inp = document.getElementById('fileSearch');
+                inp.oninput = () => {
+                    const q = inp.value.toLowerCase();
+                    renderFiles(allFiles.filter(f => f.original_name.toLowerCase().includes(q) || f.owner.toLowerCase().includes(q)));
+                };
+            } catch (e) { Toast.error('File registry unreachable: ' + e.message); }
+        }
+
+        function renderFiles(list) {
+            const tb = document.getElementById('filesTableBody');
+            if (!list.length) { tb.innerHTML = emptyRow(5, 'fa-folder-open', 'No registry entries found'); return; }
+            tb.innerHTML = list.map(f => `<tr>
+                <td>
+                    <div style="display:flex;align-items:center;gap:0.85rem;">
+                        <div style="width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;color:var(--primary-light);font-size:1rem;flex-shrink:0;border:1px solid rgba(99,102,241,0.1);"><i class="${getFileIco(f.file_type)}"></i></div>
+                        <span style="font-weight:600; color:#fff;" title="${x(f.original_name)}">${x(f.original_name.length > 40 ? f.original_name.slice(0, 40) + '…' : f.original_name)}</span>
+                    </div>
+                </td>
+                <td><span style="font-weight:700;color:var(--primary-light);">${x(f.owner)}</span></td>
+                <td style="color:var(--text-muted); font-weight:600;">${fmtSz(f.file_size)}</td>
+                <td style="color:var(--text-muted);font-size:.8rem; font-weight:600;">${fmtDt(f.uploaded_at)}</td>
+                <td><div class="actions-cell">
+                    <button class="act-btn del" title="Purge Asset" onclick="doDeleteFile(${f.id},'${x(f.original_name).replace(/'/g, "\\\'")}')"><i class="fas fa-trash"></i></button>
+                </div></td>
+            </tr>`).join('');
+        }
+
+        /* ADMINISTRATIVE ACTIONS */
+        function doRoleChange(id, uname, role) {
+            confirmAction({
+                type: 'warning', icon: 'shield-halved', title: 'Security Elevation',
+                msg: `Are you certain you want to grant "${uname}" full administrative privileges? They will have complete control over system assets.`,
+                btnCls: 'mbtn-warn', btnLbl: 'Promote Account',
+                fn: async () => { await api.post('admin/users.php', { id, role }); Toast.success(`${uname} elevated to Admin`); loadUsers(); }
+            });
+        }
+        function doDeleteUser(id, uname) {
+            confirmAction({
+                type: 'danger', icon: 'user-minus', title: 'Terminate Account',
+                msg: `Permanently delete user "${uname}"? All associated files and data will be unrecoverable. This action is terminal.`,
+                btnCls: 'mbtn-danger', btnLbl: 'Delete User',
+                fn: async () => { await api.delete(`admin/users.php?id=${id}`); Toast.success(`Account "${uname}" terminated`); loadUsers(); }
+            });
+        }
+        function doDeleteFile(id, fname) {
+            confirmAction({
+                type: 'danger', icon: 'file-excel', title: 'Purge Asset',
+                msg: `Permanently purge "${fname}" from the system registry? This cannot be undone.`,
+                btnCls: 'mbtn-danger', btnLbl: 'Purge File',
+                fn: async () => { await api.delete(`admin/files.php?id=${id}`); Toast.success('Asset purged successfully'); loadFiles(); }
+            });
+        }
+        function confirmLogout() {
+            confirmAction({
+                type: 'warning', icon: 'right-from-bracket', title: 'Secure Sign Out',
+                msg: 'Are you ready to terminate your current administrative session?',
+                btnCls: 'mbtn-warn', btnLbl: 'Sign Out',
+                fn: async () => { try { await api.post('logout.php'); } catch (e) { } localStorage.clear(); window.location.href = 'login.html'; }
+            });
+        }
+
+        /* MODAL & TOAST SYSTEM */
+        function confirmAction({ type, icon, title, msg, btnCls, btnLbl, fn }) {
+            document.getElementById('mIco').className = `modal-ico ${type}`;
+            document.getElementById('mIcoSym').className = `fas fa-${icon}`;
+            document.getElementById('mTitle').textContent = title;
+            document.getElementById('mMsg').textContent = msg;
+            const btn = document.getElementById('mConfirm');
+            btn.className = `mbtn ${btnCls}`;
+            btn.textContent = btnLbl;
+            pendFn = fn;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        async function execConfirm() {
+            const fn = pendFn; pendFn = null;
+            closeModal();
+            try { await fn(); } catch (e) { Toast.error(e.message || 'Administrative action failed'); }
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            pendFn = null;
+        }
+
+        document.getElementById('confirmModal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+
+        /* GLOBAL UTILITIES */
+        function setLoader(id, cols) {
+            document.getElementById(id).innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><i class="fas fa-spinner fa-spin" style="opacity:.4;"></i><p>Synchronizing Repository…</p></div></td></tr>`;
+        }
+
+        function emptyRow(cols, ico, msg) {
+            return `<tr><td colspan="${cols}"><div class="empty-state"><i class="fas ${ico}"></i><p>${msg}</p></div></td></tr>`;
+        }
+
+        function x(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function fmtDt(s) {
+            return new Date(s).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function ago(s) {
+            const d = Math.floor((Date.now() - new Date(s)) / 1000);
+            if (d < 60) return `${d}s ago`;
+            if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+            if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+            return `${Math.floor(d / 86400)}d ago`;
+        }
+
+        function fmtSz(b) {
+            if (!b || b == 0) return '0 B';
+            const k = 1024, u = ['B', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(b) / Math.log(k));
+            return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + u[i];
+        }
+
+        function getFileIco(t) {
+            if (!t) return 'fa-file';
+            if (t.includes('image')) return 'fa-file-image';
+            if (t.includes('pdf')) return 'fa-file-pdf';
+            if (t.includes('video')) return 'fa-file-video';
+            if (t.includes('audio')) return 'fa-file-audio';
+            if (t.includes('zip') || t.includes('rar')) return 'fa-file-zipper';
+            if (t.includes('word')) return 'fa-file-word';
+            if (t.includes('sheet')) return 'fa-file-excel';
+            return 'fa-file-lines';
+        }
+
+        /* AUTO-BOOT */
+        loadOverview();
+        loopId = setInterval(loadOverview, 30000);
+    </script>
+</body>
+
+</html>
