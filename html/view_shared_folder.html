@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -503,6 +504,22 @@
             <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
         </div>
 
+        <!-- Turnstile State -->
+        <div id="turnstileState" class="file-card fade-up"
+            style="display:none; text-align: center; padding: 4rem 2rem; max-width: 460px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 28px;">
+            <div class="error-icon"
+                style="background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.2); color: var(--primary-light); margin-bottom: 1.5rem;">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h1 class="folder-title" style="margin-bottom: 1rem; font-size: 1.8rem;">Security Check</h1>
+            <p style="color: var(--text-sub); margin-bottom: 2rem; font-size: 0.95rem;">
+                Please verify you are human before proceeding to access the shared folder.
+            </p>
+            <div id="turnstile-container" style="display: flex; justify-content: center; margin-bottom: 1.5rem;"></div>
+            <p id="turnstileError" style="color: var(--error); font-size: 0.85rem; display: none; margin-bottom: 1rem;">
+                Security check failed, try again.</p>
+        </div>
+
         <!-- Password Protected State -->
         <div id="passwordState" class="file-card fade-up"
             style="display:none; text-align: center; padding: 4rem 2rem; max-width: 460px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 28px;">
@@ -532,6 +549,7 @@
         const token = params.get('token');
         let folderData = null;
         let currentPassword = '';
+        let currentTurnstile = '';
 
         if (!token) {
             showInvalid('No folder token was provided in the URL.');
@@ -543,9 +561,9 @@
 
         async function fetchFolder() {
             try {
-                const url = currentPassword
-                    ? `get_shared_folder.php?token=${token}&password=${encodeURIComponent(currentPassword)}`
-                    : `get_shared_folder.php?token=${token}`;
+                let url = `get_shared_folder.php?token=${token}`;
+                if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
+                if (currentTurnstile) url += `&turnstile=${encodeURIComponent(currentTurnstile)}`;
 
                 folderData = await api.get(url);
                 render(folderData);
@@ -553,6 +571,8 @@
                 if (err.status === 410) {
                     localStorage.setItem(`expired_folder_${token}`, 'true');
                     showExpired();
+                } else if (err.status === 403 && err.requires_turnstile) {
+                    showTurnstilePrompt();
                 } else if (err.status === 401) {
                     if (currentPassword) {
                         document.getElementById('passwordError').style.display = 'block';
@@ -563,7 +583,12 @@
                         showPasswordPrompt();
                     }
                 } else {
-                    showInvalid(err.message || 'This folder might have been deleted or the link is invalid.');
+                    if (currentTurnstile && err.message && err.message.includes('Security check')) {
+                        document.getElementById('turnstileError').style.display = 'block';
+                        if (typeof turnstile !== 'undefined') turnstile.reset();
+                    } else {
+                        showInvalid(err.message || 'This folder might have been deleted or the link is invalid.');
+                    }
                 }
             }
         }
@@ -703,6 +728,7 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('folderView').style.display = 'none';
             document.getElementById('passwordState').style.display = 'none';
+            document.getElementById('turnstileState').style.display = 'none';
             document.getElementById('expiredState').style.display = 'block';
         }
 
@@ -710,6 +736,7 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('folderView').style.display = 'none';
             document.getElementById('passwordState').style.display = 'none';
+            document.getElementById('turnstileState').style.display = 'none';
             if (document.getElementById('invalidMessage')) {
                 document.getElementById('invalidMessage').textContent = message;
             }
@@ -721,8 +748,45 @@
             document.getElementById('folderView').style.display = 'none';
             document.getElementById('expiredState').style.display = 'none';
             document.getElementById('invalidState').style.display = 'none';
+            document.getElementById('turnstileState').style.display = 'none';
             document.getElementById('passwordState').style.display = 'block';
             document.getElementById('unlockPassword').focus();
+        }
+
+        function showTurnstilePrompt() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('folderView').style.display = 'none';
+            document.getElementById('expiredState').style.display = 'none';
+            document.getElementById('invalidState').style.display = 'none';
+            document.getElementById('passwordState').style.display = 'none';
+            document.getElementById('turnstileState').style.display = 'block';
+
+            api.get('get_turnstile.php').then(res => {
+                if (res && res.sitekey) {
+                    const renderT = () => {
+                        turnstile.render('#turnstile-container', {
+                            sitekey: res.sitekey,
+                            theme: 'dark',
+                            callback: function (tokenValue) {
+                                currentTurnstile = tokenValue;
+                                document.getElementById('turnstileError').style.display = 'none';
+                                document.getElementById('turnstileState').style.display = 'none';
+                                document.getElementById('loadingState').style.display = 'flex';
+                                fetchFolder();
+                            }
+                        });
+                    };
+                    if (typeof turnstile !== 'undefined') renderT();
+                    else {
+                        const iv = setInterval(() => {
+                            if (typeof turnstile !== 'undefined') {
+                                clearInterval(iv);
+                                renderT();
+                            }
+                        }, 100);
+                    }
+                }
+            }).catch(e => console.error("Turnstile core error:", e));
         }
 
         function getFileIcon(type) {
