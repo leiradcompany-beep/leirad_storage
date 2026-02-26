@@ -672,14 +672,14 @@ function closeUploadSelectionModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// 13. High-Performance Parallel Upload Pipeline
+// 13. High-Performance Sequential Upload Pipeline
 async function processUploadQueue(files) {
     const total = files.length;
     let completed = 0;
-    const concurrencyLimit = 5;
+    const concurrencyLimit = 1;
     const fileArray = Array.from(files);
 
-    Toast.info(`Initiating parallel sync for ${total} item(s)...`);
+    Toast.info(`Initiating sequential sync for ${total} item(s)...`);
 
     let currentIndex = 0;
     let activeConflicts = Promise.resolve(); // Serial lock for conflict UI
