@@ -531,6 +531,10 @@ function openShareModal(id, type) {
         // Reset form
         document.getElementById('shareExpiry').value = 'none';
         document.getElementById('customExpiryContainer').style.display = 'none';
+
+        const pwdEl = document.getElementById('sharePassword');
+        if (pwdEl) pwdEl.value = '';
+
         const noteEl = document.getElementById('shareNote');
         if (noteEl) { noteEl.value = ''; }
         const counter = document.getElementById('noteCharCount');
@@ -582,12 +586,17 @@ async function generateShareLink() {
     const noteEl = document.getElementById('shareNote');
     const note = noteEl ? noteEl.value.trim() : '';
 
+    // Collect password (optional)
+    const pwdEl = document.getElementById('sharePassword');
+    const password = pwdEl ? pwdEl.value : '';
+
     UiUtils.setBtnLoading(btn, true, 'Generating...');
     try {
         const response = await api.post('share.php', {
             id: currentShareItem.id,
             type: currentShareItem.type,
             expiry,
+            password: password,
             note: note || null
         });
 

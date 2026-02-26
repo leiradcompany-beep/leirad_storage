@@ -502,6 +502,28 @@
             <p id="invalidMessage">This share link is invalid or the folder has been removed.</p>
             <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
         </div>
+
+        <!-- Password Protected State -->
+        <div id="passwordState" class="file-card fade-up"
+            style="display:none; text-align: center; padding: 4rem 2rem; max-width: 460px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 28px;">
+            <div class="error-icon"
+                style="background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: var(--warning); margin-bottom: 1.5rem;">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h1 class="folder-title" style="margin-bottom: 1rem; font-size: 1.8rem;">Protected Collection</h1>
+            <p style="color: var(--text-sub); margin-bottom: 2rem; font-size: 0.95rem;">
+                This folder is secured with a password. Please unlock to proceed.
+            </p>
+            <input type="password" id="unlockPassword"
+                style="width: 100%; padding: 0.9rem 1.25rem; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; font-size: 1rem; margin-bottom: 1rem; font-family: inherit;"
+                placeholder="Enter Password...">
+            <p id="passwordError" style="color: var(--error); font-size: 0.85rem; display: none; margin-bottom: 1rem;">
+                Incorrect password.</p>
+            <button onclick="submitPassword()" class="btn-zip" id="unlockBtn"
+                style="width: 100%; justify-content: center; padding: 1rem;">
+                <i class="fas fa-key"></i> Unlock Folder
+            </button>
+        </div>
     </div>
 
     <script src="../js/api.js"></script>
@@ -509,6 +531,7 @@
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
         let folderData = null;
+        let currentPassword = '';
 
         if (!token) {
             showInvalid('No folder token was provided in the URL.');
@@ -520,16 +543,43 @@
 
         async function fetchFolder() {
             try {
-                folderData = await api.get(`get_shared_folder.php?token=${token}`);
+                const url = currentPassword
+                    ? `get_shared_folder.php?token=${token}&password=${encodeURIComponent(currentPassword)}`
+                    : `get_shared_folder.php?token=${token}`;
+
+                folderData = await api.get(url);
                 render(folderData);
             } catch (err) {
                 if (err.status === 410) {
                     localStorage.setItem(`expired_folder_${token}`, 'true');
                     showExpired();
+                } else if (err.status === 401) {
+                    if (currentPassword) {
+                        document.getElementById('passwordError').style.display = 'block';
+                        const btn = document.getElementById('unlockBtn');
+                        btn.innerHTML = '<i class="fas fa-key"></i> Unlock Folder';
+                        btn.classList.remove('loading');
+                    } else {
+                        showPasswordPrompt();
+                    }
                 } else {
                     showInvalid(err.message || 'This folder might have been deleted or the link is invalid.');
                 }
             }
+        }
+
+        function submitPassword() {
+            const pwdInput = document.getElementById('unlockPassword');
+            if (!pwdInput.value) return;
+
+            currentPassword = pwdInput.value;
+            document.getElementById('passwordError').style.display = 'none';
+
+            const btn = document.getElementById('unlockBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            btn.classList.add('loading');
+
+            fetchFolder();
         }
 
         function render(data) {
@@ -584,6 +634,7 @@
 
             files.forEach(file => {
                 const icon = getFileIcon(file.file_type || '');
+                const pwdParam = currentPassword ? `&password=${encodeURIComponent(currentPassword)}` : '';
                 html += `
                 <div class="file-item">
                     <div class="file-ic"><i class="${icon}"></i></div>
@@ -591,7 +642,7 @@
                         <div class="file-name">${escHtml(file.original_name)}</div>
                         <div class="file-size">${formatSize(file.file_size)}</div>
                     </div>
-                    <a class="btn-dl" title="Download" href="${API_BASE}download_from_folder.php?folder_token=${token}&file_id=${file.id}">
+                    <a class="btn-dl" title="Download" href="${API_BASE}download_from_folder.php?folder_token=${token}&file_id=${file.id}${pwdParam}">
                         <i class="fas fa-download"></i>
                     </a>
                 </div>`;
@@ -611,7 +662,8 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing ZIP…';
 
             // Trigger download then restore button
-            const href = `${API_BASE}download_folder_zip.php?folder_token=${token}`;
+            const pwdParam = currentPassword ? `&password=${encodeURIComponent(currentPassword)}` : '';
+            const href = `${API_BASE}download_folder_zip.php?folder_token=${token}${pwdParam}`;
             const a = document.createElement('a');
             a.href = href;
             a.style.display = 'none';
@@ -650,16 +702,27 @@
         function showExpired() {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('folderView').style.display = 'none';
+            document.getElementById('passwordState').style.display = 'none';
             document.getElementById('expiredState').style.display = 'block';
         }
 
         function showInvalid(message) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('folderView').style.display = 'none';
+            document.getElementById('passwordState').style.display = 'none';
             if (document.getElementById('invalidMessage')) {
                 document.getElementById('invalidMessage').textContent = message;
             }
             document.getElementById('invalidState').style.display = 'block';
+        }
+
+        function showPasswordPrompt() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('folderView').style.display = 'none';
+            document.getElementById('expiredState').style.display = 'none';
+            document.getElementById('invalidState').style.display = 'none';
+            document.getElementById('passwordState').style.display = 'block';
+            document.getElementById('unlockPassword').focus();
         }
 
         function getFileIcon(type) {

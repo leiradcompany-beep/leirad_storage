@@ -397,6 +397,26 @@
         <a href="index.html" class="btn-home"><i class="fas fa-house"></i> Back to Home</a>
     </div>
 
+    <!-- Password Protected State -->
+    <div id="passwordState" class="card fade-up" style="display:none; text-align: center;">
+        <div class="file-icon-wrap"
+            style="color: var(--warning); border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.1);">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h1 class="file-title" style="margin-bottom: 1rem;">Protected Asset</h1>
+        <p style="color: var(--text-sub); margin-bottom: 2rem; font-size: 0.95rem;">
+            This file is secured with a password. Please unlock to proceed.
+        </p>
+        <input type="password" id="unlockPassword"
+            style="width: 100%; padding: 0.9rem 1.25rem; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; font-size: 1rem; margin-bottom: 1rem; font-family: inherit;"
+            placeholder="Enter Password...">
+        <p id="passwordError" style="color: var(--error); font-size: 0.85rem; display: none; margin-bottom: 1rem;">
+            Incorrect password.</p>
+        <button onclick="submitPassword()" class="btn-download" id="unlockBtn">
+            <i class="fas fa-key"></i> Unlock Asset
+        </button>
+    </div>
+
     <script src="../js/api.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
@@ -411,19 +431,48 @@
             fetchFileInfo();
         }
 
+        let currentPassword = '';
+
         async function fetchFileInfo() {
             try {
-                const file = await api.get(`get_shared_file.php?token=${token}`);
+                const url = currentPassword
+                    ? `get_shared_file.php?token=${token}&password=${encodeURIComponent(currentPassword)}`
+                    : `get_shared_file.php?token=${token}`;
+
+                const file = await api.get(url);
                 displayFile(file);
             } catch (err) {
-                // 410 = gone (expired), 404 = not found
+                // 410 = gone (expired), 404 = not found, 401 = protected
                 if (err.status === 410) {
                     localStorage.setItem(`expired_${token}`, 'true');
                     showExpired();
+                } else if (err.status === 401) {
+                    if (currentPassword) {
+                        document.getElementById('passwordError').style.display = 'block';
+                        const btn = document.getElementById('unlockBtn');
+                        btn.innerHTML = '<i class="fas fa-key"></i> Unlock Asset';
+                        btn.disabled = false;
+                    } else {
+                        showPasswordPrompt();
+                    }
                 } else {
                     showInvalid(err.message || 'The share link is invalid or has been removed.');
                 }
             }
+        }
+
+        function submitPassword() {
+            const pwdInput = document.getElementById('unlockPassword');
+            if (!pwdInput.value) return;
+
+            currentPassword = pwdInput.value;
+            document.getElementById('passwordError').style.display = 'none';
+
+            const btn = document.getElementById('unlockBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            btn.disabled = true;
+
+            fetchFileInfo();
         }
 
         function displayFile(file) {
@@ -460,7 +509,8 @@
             }
 
             document.getElementById('downloadBtn').onclick = () => {
-                window.location.href = `${API_BASE}download.php?token=${token}`;
+                const pwdParam = currentPassword ? `&password=${encodeURIComponent(currentPassword)}` : '';
+                window.location.href = `${API_BASE}download.php?token=${token}${pwdParam}`;
             };
         }
 
@@ -498,6 +548,7 @@
             hide('loadingState');
             hide('fileState');
             hide('invalidState');
+            hide('passwordState');
             show('expiredState');
         }
 
@@ -505,8 +556,18 @@
             hide('loadingState');
             hide('fileState');
             hide('expiredState');
+            hide('passwordState');
             document.getElementById('invalidMessage').textContent = message;
             show('invalidState');
+        }
+
+        function showPasswordPrompt() {
+            hide('loadingState');
+            hide('fileState');
+            hide('expiredState');
+            hide('invalidState');
+            show('passwordState');
+            document.getElementById('unlockPassword').focus();
         }
 
         function show(id) { document.getElementById(id).style.display = 'block'; }
