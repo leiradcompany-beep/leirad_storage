@@ -13,6 +13,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="../css/global.css">
     <script src="../js/security-deterrents.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
@@ -276,6 +277,8 @@
 
             <a href="forgot.html" class="forgot-pass">Forgot password?</a>
 
+            <div id="turnstile-container" style="display: flex; justify-content: center; margin-bottom: 1.5rem;"></div>
+
             <button type="submit" class="apple-btn-primary">
                 Sign In
             </button>
@@ -295,10 +298,22 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
+            const formData = new FormData(e.target);
+            const turnstileResponse = formData.get('cf-turnstile-response');
+
+            if (!turnstileResponse) {
+                Toast.error('Please complete the security check.');
+                return;
+            }
+
             UiUtils.setBtnLoading(btn, true);
 
             try {
-                const response = await api.post('login.php', { username, password });
+                const response = await api.post('login.php', {
+                    username,
+                    password,
+                    turnstile_response: turnstileResponse
+                });
                 if (response.user) {
                     Toast.success('Login successful! Redirecting...');
                     localStorage.setItem('user', JSON.stringify(response.user));
@@ -320,10 +335,39 @@
                     }, 2000);
                 } else {
                     Toast.error(err.message || 'Login failed');
+                    if (typeof turnstile !== 'undefined') turnstile.reset();
                 }
                 UiUtils.setBtnLoading(btn, false);
             }
         });
+
+        // Initialize Turnstile
+        async function initTurnstile() {
+            try {
+                const res = await api.get('get_turnstile.php');
+                if (res && res.sitekey) {
+                    const renderTurnstile = () => {
+                        turnstile.render('#turnstile-container', {
+                            sitekey: res.sitekey,
+                            theme: 'dark'
+                        });
+                    };
+                    if (typeof turnstile !== 'undefined') {
+                        renderTurnstile();
+                    } else {
+                        const interval = setInterval(() => {
+                            if (typeof turnstile !== 'undefined') {
+                                clearInterval(interval);
+                                renderTurnstile();
+                            }
+                        }, 100);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load Turnstile config');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', initTurnstile);
     </script>
 </body>
 
