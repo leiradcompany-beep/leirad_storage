@@ -604,11 +604,8 @@ async function generateShareLink() {
             throw new Error('No share token received from server.');
         }
 
-        // Build share URL robustly
-        const currentPath = window.location.pathname;
-        const baseIdx = currentPath.indexOf('/frontend/html/');
-        const basePath = baseIdx !== -1 ? currentPath.substring(0, baseIdx) : '';
-        const shareUrl = `${window.location.origin}${basePath}/s/${response.share_token}`;
+        // Build share URL mapped to the backend API hosting domain
+        const shareUrl = `${API_BASE.replace('/api/', '/s/')}${response.share_token}`;
         document.getElementById('shareLinkInput').value = shareUrl;
         document.getElementById('shareLinkContainer').style.display = 'block';
 
